@@ -44,66 +44,36 @@ faster or has lower variance.
    - Re-runs the final selected setup multiple times.
    - Use this to check whether the result is robust or just a lucky run.
 
-## Running A Round
+## Running Round 1 On SLURM
 
 From the project root:
 
 ```bash
-python src/run_experiment_round.py --config config/pong_dqn_experiments.json --round round_1_preprocessing
+sbatch scripts/round_1_preprocessing/r01_skip_current.sh
+sbatch scripts/round_1_preprocessing/r01_skip_no_extra_wrapper.sh
+sbatch scripts/round_1_preprocessing/r01_skip_classic_dqn.sh
+sbatch scripts/round_1_preprocessing/r01_skip_no_skip_high_control.sh
 ```
 
-For a quick smoke test of a round:
+Each script trains one experiment and then runs the benchmark. To reduce
+benchmark cost while testing the queue setup:
 
 ```bash
-python src/run_experiment_round.py --config config/pong_dqn_experiments.json --round round_1_preprocessing --max-frames 5000 --benchmark-episodes 5
+BENCHMARK_EPISODES=5 sbatch scripts/round_1_preprocessing/r01_skip_current.sh
 ```
 
-## Running On SLURM
-
-Submit one independent job per experiment in a round:
+To use a specific Python environment:
 
 ```bash
-bash scripts/run_experiment_round1.sh
+PYTHON_BIN=/path/to/env/bin/python sbatch scripts/round_1_preprocessing/r01_skip_current.sh
 ```
 
-The launcher does not need a GPU; each child job submitted through
-`scripts/slurm_experiment_job.sh` requests one GPU. Each child job runs
-`src/run_single_experiment.py`, which imports the training and benchmark code
-and calls the Python functions directly in one process. To run a different
-round:
+## Running One Experiment Without SLURM
 
 ```bash
-ROUND_NAME=round_2_learning_rate bash scripts/run_experiment_round1.sh
+python -u src/train_pong_dqn.py --config config/pong_dqn_experiments.json --experiment r01_skip_current --use-wandb
+python -u src/benchmark_pong_dqn.py --config config/pong_dqn_experiments.json --experiment r01_skip_current --episodes 100 --prefix r01_skip_current
 ```
-
-To reduce benchmark cost while testing the queue setup:
-
-```bash
-BENCHMARK_EPISODES=5 bash scripts/run_experiment_round1.sh
-```
-
-The round runner can print one command per experiment:
-
-```bash
-python src/run_experiment_round.py --config config/pong_dqn_experiments.json --round round_1_preprocessing --mode print
-```
-
-This is useful if you already have a custom SLURM submission script.
-
-It can also submit one SLURM job per experiment directly:
-
-```bash
-python src/run_experiment_round.py \
-  --config config/pong_dqn_experiments.json \
-  --round round_1_preprocessing \
-  --mode sbatch \
-  --script scripts/slurm_experiment_job.sh \
-  --use-wandb
-```
-
-Edit `scripts/slurm_experiment_job.sh` to match your cluster partition, GPU,
-memory, time limit, and environment activation. Each submitted job runs training
-and then the benchmark for one experiment.
 
 ## Promoting A Winner
 

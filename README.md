@@ -25,50 +25,32 @@ Train one configured experiment:
 python src/train_pong_dqn.py --config config/pong_dqn_experiments.json --experiment baseline
 ```
 
-Run a full sequential experimentation round:
+Run one experiment manually:
 
 ```bash
-python src/run_experiment_round.py --config config/pong_dqn_experiments.json --round round_1_preprocessing
+sbatch scripts/round_1_preprocessing/r01_skip_current.sh
 ```
 
-For a SLURM cluster, submit one independent job per experiment in a round:
+Round 1 preprocessing experiments:
 
 ```bash
-bash scripts/run_experiment_round1.sh
+sbatch scripts/round_1_preprocessing/r01_skip_current.sh
+sbatch scripts/round_1_preprocessing/r01_skip_no_extra_wrapper.sh
+sbatch scripts/round_1_preprocessing/r01_skip_classic_dqn.sh
+sbatch scripts/round_1_preprocessing/r01_skip_no_skip_high_control.sh
 ```
 
-The launcher itself does not need a GPU; each submitted child job requests one.
-Each child job runs `src/run_single_experiment.py`, which imports the training
-and benchmark functions and executes them directly in one Python process.
-Override the round or benchmark size with environment variables:
+Each script trains one experiment and then runs the 100-episode benchmark.
+Override benchmark length or Python executable with environment variables:
 
 ```bash
-ROUND_NAME=round_2_learning_rate BENCHMARK_EPISODES=50 bash scripts/run_experiment_round1.sh
+BENCHMARK_EPISODES=20 PYTHON_BIN=/path/to/python sbatch scripts/round_1_preprocessing/r01_skip_current.sh
 ```
 
-You can also print one command per experiment and submit those commands with
-your own queue script:
-
-```bash
-python src/run_experiment_round.py --config config/pong_dqn_experiments.json --round round_1_preprocessing --mode print
-```
-
-Or submit one SLURM job per experiment directly:
-
-```bash
-python src/run_experiment_round.py \
-  --config config/pong_dqn_experiments.json \
-  --round round_1_preprocessing \
-  --mode sbatch \
-  --script scripts/slurm_experiment_job.sh \
-  --use-wandb
-```
-
-The configured rounds change one parameter family at a time. After each round,
-choose the best experiment using the benchmark average reward, standard
-deviation, training time, and convergence thresholds. Then copy that winner's
-settings into the next round's candidate experiments before launching the next
-round. See `docs/sequential_experimentation.md` for the full workflow.
+After each round, choose the best experiment using the benchmark average reward,
+standard deviation, training time, and convergence thresholds. Then copy that
+winner's settings into the next round's candidate experiments before launching
+the next round. See `docs/sequential_experimentation.md` for the full workflow.
 
 Record GIFs from a trained model:
 
