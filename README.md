@@ -31,6 +31,37 @@ Run a full sequential experimentation round:
 python src/run_experiment_round.py --config config/pong_dqn_experiments.json --round round_1_preprocessing
 ```
 
+For a SLURM cluster, submit one independent job per experiment in a round:
+
+```bash
+bash scripts/run_experiment_round1.sh
+```
+
+The launcher itself does not need a GPU; each submitted child job requests one.
+Override the round or benchmark size with environment variables:
+
+```bash
+ROUND_NAME=round_2_learning_rate BENCHMARK_EPISODES=50 bash scripts/run_experiment_round1.sh
+```
+
+You can also print one command per experiment and submit those commands with
+your own queue script:
+
+```bash
+python src/run_experiment_round.py --config config/pong_dqn_experiments.json --round round_1_preprocessing --mode print
+```
+
+Or submit one SLURM job per experiment directly:
+
+```bash
+python src/run_experiment_round.py \
+  --config config/pong_dqn_experiments.json \
+  --round round_1_preprocessing \
+  --mode sbatch \
+  --script scripts/slurm_experiment_job.sh \
+  --use-wandb
+```
+
 The configured rounds change one parameter family at a time. After each round,
 choose the best experiment using the benchmark average reward, standard
 deviation, training time, and convergence thresholds. Then copy that winner's

@@ -1,29 +1,40 @@
-#!/bin/bash
-#SBATCH -n 4 # Number of cores
-#SBATCH -N 1 # Ensure that all cores are on one machine
-#SBATCH -t 0-24:00 # Runtime in D-HH:MM
-#SBATCH -p mlow # Partition to submit to
-#SBATCH -q masterlow # Required to requeue other users mlow queue jobs
-                      # With this parameter only 1 job will be running in queue mlow
-                      # By defaulf the value is masterlow if not defined
-#SBATCH --mem 4096 # 4GB memory
-#SBATCH --gres gpu:1 # Request of 1 gpu
-#SBATCH -o logs/%x_%u_%j.out # File to which STDOUT will be written
-#SBATCH -e logs/%x_%u_%j.err # File to which STDERR will be written
+#!/usr/bin/env bash
+# Submit one SLURM job per experiment in a configured round.
+# Run from the login node with:
+#   bash scripts/run_experiment_round1.sh
+#
+# You may also submit this launcher with sbatch, but it does not need a GPU
+# itself because it only submits the real experiment jobs.
 
 set -euo pipefail
 
 CONFIG=${1:-config/pong_dqn_experiments.json}
-#ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON_BIN="${PYTHON_BIN:-python}"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+ROUND_NAME="${ROUND_NAME:-round_1_preprocessing}"
+BENCHMARK_EPISODES="${BENCHMARK_EPISODES:-100}"
+SLURM_JOB_SCRIPT="${SLURM_JOB_SCRIPT:-scripts/slurm_experiment_job.sh}"
 
-echo "Running inference with config: $CONFIG"
+if [[ "$CONFIG" != /* && -f "$CONFIG" ]]; then
+  CONFIG="$(cd "$(dirname "$CONFIG")" && pwd)/$(basename "$CONFIG")"
+fi
 
-#cd "$ROOT_DIR"
-#mkdir -p results/task1
+cd "$ROOT_DIR"
+mkdir -p logs models results videos/benchmarks
 
-CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}" \
+echo "Project root: $ROOT_DIR"
+echo "Running experiment round: $ROUND_NAME"
+echo "Using config: $CONFIG"
+echo "Using Python: $PYTHON_BIN"
+echo "Submitting one SLURM job per experiment with: $SLURM_JOB_SCRIPT"
+
 "$PYTHON_BIN" src/run_experiment_round.py \
   --config "$CONFIG" \
-  --round round_1_preprocessing \
+  --round "$ROUND_NAME" \
+  --benchmark-episodes "$BENCHMARK_EPISODES" \
+  --mode sbatch \
+  --script "$SLURM_JOB_SCRIPT" \
+  --python-bin "$PYTHON_BIN" \
+  --job-name-prefix "$ROUND_NAME" \
+  --logs-dir logs \
   --use-wandb

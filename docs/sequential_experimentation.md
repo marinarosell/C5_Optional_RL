@@ -58,6 +58,50 @@ For a quick smoke test of a round:
 python src/run_experiment_round.py --config config/pong_dqn_experiments.json --round round_1_preprocessing --max-frames 5000 --benchmark-episodes 5
 ```
 
+## Running On SLURM
+
+Submit one independent job per experiment in a round:
+
+```bash
+bash scripts/run_experiment_round1.sh
+```
+
+The launcher does not need a GPU; each child job submitted through
+`scripts/slurm_experiment_job.sh` requests one GPU. To run a different round:
+
+```bash
+ROUND_NAME=round_2_learning_rate bash scripts/run_experiment_round1.sh
+```
+
+To reduce benchmark cost while testing the queue setup:
+
+```bash
+BENCHMARK_EPISODES=5 bash scripts/run_experiment_round1.sh
+```
+
+The round runner can print one command per experiment:
+
+```bash
+python src/run_experiment_round.py --config config/pong_dqn_experiments.json --round round_1_preprocessing --mode print
+```
+
+This is useful if you already have a custom SLURM submission script.
+
+It can also submit one SLURM job per experiment directly:
+
+```bash
+python src/run_experiment_round.py \
+  --config config/pong_dqn_experiments.json \
+  --round round_1_preprocessing \
+  --mode sbatch \
+  --script scripts/slurm_experiment_job.sh \
+  --use-wandb
+```
+
+Edit `scripts/slurm_experiment_job.sh` to match your cluster partition, GPU,
+memory, time limit, and environment activation. Each submitted job runs training
+and then the benchmark for one experiment.
+
 ## Promoting A Winner
 
 After each round:
