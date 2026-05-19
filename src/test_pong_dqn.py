@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import gymnasium as gym
@@ -11,7 +12,13 @@ import numpy as np
 import torch
 from PIL import Image
 
-from train_pong_dqn import TrainConfig, build_config, load_config, make_DQN, make_env
+from train_pong_dqn import TrainConfig, build_config, load_config, make_DQN, make_env, select_device
+
+try:
+    import wandb
+    _HAS_WANDB = True
+except ImportError:
+    _HAS_WANDB = False
 
 
 def parse_args():
@@ -38,6 +45,7 @@ def parse_args():
         '--metrics-path',
         help='Path to a JSON metrics file. Defaults to results/<experiment>_test_metrics.json.',
     )
+    parser.add_argument('--use-wandb', action='store_true', help='Log benchmark metrics and GIFs to W&B.')
     return parser.parse_args()
 
 
@@ -124,6 +132,42 @@ def write_metrics(metrics_path, payload):
         json.dump(payload, f, indent=2)
 
 
+def log_benchmark_to_wandb(args, config, metrics_path, summary):
+    if not args.use_wandb:
+        return
+    if not _HAS_WANDB:
+        raise RuntimeError('Benchmark W&B logging requested, but wandb is not installed.')
+    if os.environ.get('WANDB_MODE') == 'disabled':
+        raise RuntimeError('WANDB_MODE=disabled, so benchmark results will not be saved to W&B.')
+
+    run = wandb.init(
+        project=config.wandb_project,
+        name=f'{args.experiment}_benchmark',
+        job_type='benchmark',
+        config={
+            'experiment': args.experiment,
+            'episodes': args.episodes,
+            'env_name': config.env_name,
+            'env_frameskip': config.env_frameskip,
+            'wrapper_skip': config.wrapper_skip,
+            'model_path': str(config.save_path),
+        },
+    )
+    wandb.log({
+        'benchmark/average_reward': summary['average_reward'],
+        'benchmark/std_reward': summary['std_reward'],
+        'benchmark/min_reward': summary['min_reward'],
+        'benchmark/max_reward': summary['max_reward'],
+        'benchmark/episodes': summary['episodes'],
+    })
+    for key in ('best_gif_path', 'worst_gif_path'):
+        if key in summary and Path(summary[key]).exists():
+            wandb.log({f'benchmark/{key}': wandb.Video(summary[key], format='gif')})
+    wandb.save(str(metrics_path))
+    print('W&B benchmark run:', run.url)
+    wandb.finish()
+
+
 def main():
     args = parse_args()
     if args.episodes < 1:
@@ -133,7 +177,8 @@ def main():
 
     gym.register_envs(ale_py)
     config, env_name, model_path = load_test_config(args)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    require_cuda = os.environ.get('REQUIRE_CUDA', '0') == '1'
+    device = select_device(require_cuda=require_cuda)
 
     print('Using device:', device)
     print('Environment:', env_name)
@@ -230,6 +275,7 @@ def main():
         'episodes': results,
     }
     write_metrics(metrics_path, payload)
+    log_benchmark_to_wandb(args, config, metrics_path, payload['summary'])
 
     print('Summary:', json.dumps(payload['summary'], indent=2))
     print('Metrics saved to:', metrics_path)

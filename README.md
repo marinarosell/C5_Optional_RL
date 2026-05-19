@@ -40,11 +40,29 @@ sbatch scripts/round_1_preprocessing/r01_skip_classic_dqn.sh
 sbatch scripts/round_1_preprocessing/r01_skip_no_skip_high_control.sh
 ```
 
+Scripts for rounds 2 through 6 are also available under `scripts/round_*`.
+Open each script and fill the empty `BEST_...` fields with the winning
+parameters from previous rounds before submitting it.
+
 Each script trains one experiment and then runs the 100-episode benchmark.
 Override benchmark length or Python executable with environment variables:
 
 ```bash
 BENCHMARK_EPISODES=20 PYTHON_BIN=/path/to/python sbatch scripts/round_1_preprocessing/r01_skip_current.sh
+```
+
+Before launching a long run on the server, verify that the selected Python
+environment can see the GPU:
+
+```bash
+sbatch scripts/debug_cuda.sh
+```
+
+If that debug job reports `torch.cuda.is_available(): False`, submit the
+experiment with the Python executable from the CUDA-enabled environment:
+
+```bash
+PYTHON_BIN=/path/to/env/bin/python sbatch scripts/round_1_preprocessing/r01_skip_current.sh
 ```
 
 After each round, choose the best experiment using the benchmark average reward,

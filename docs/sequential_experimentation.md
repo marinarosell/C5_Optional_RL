@@ -68,6 +68,62 @@ To use a specific Python environment:
 PYTHON_BIN=/path/to/env/bin/python sbatch scripts/round_1_preprocessing/r01_skip_current.sh
 ```
 
+## Running Later Rounds
+
+For rounds 2 through 6, each script contains a TODO block with empty fields.
+Fill those fields using the best parameters from the previous rounds before
+submitting the job. If a required field is still empty, the script stops before
+training.
+
+Round 2, learning rate:
+
+```bash
+sbatch scripts/round_2_learning_rate/r02_lr_2_5e_5.sh
+sbatch scripts/round_2_learning_rate/r02_lr_5e_5.sh
+sbatch scripts/round_2_learning_rate/r02_lr_1e_4.sh
+sbatch scripts/round_2_learning_rate/r02_lr_2_5e_4.sh
+```
+
+Round 3, replay buffer:
+
+```bash
+sbatch scripts/round_3_replay/r03_replay_10000.sh
+sbatch scripts/round_3_replay/r03_replay_50000.sh
+sbatch scripts/round_3_replay/r03_replay_100000.sh
+```
+
+Round 4, epsilon decay:
+
+```bash
+sbatch scripts/round_4_epsilon_decay/r04_eps_slow.sh
+sbatch scripts/round_4_epsilon_decay/r04_eps_default.sh
+sbatch scripts/round_4_epsilon_decay/r04_eps_fast.sh
+```
+
+Round 5, target-network sync:
+
+```bash
+sbatch scripts/round_5_target_sync/r05_sync_500.sh
+sbatch scripts/round_5_target_sync/r05_sync_1000.sh
+sbatch scripts/round_5_target_sync/r05_sync_5000.sh
+```
+
+Round 6, confirmation seeds:
+
+```bash
+sbatch scripts/round_6_confirmation_seeds/r06_best_seed_1.sh
+sbatch scripts/round_6_confirmation_seeds/r06_best_seed_2.sh
+sbatch scripts/round_6_confirmation_seeds/r06_best_seed_3.sh
+```
+
+Example after round 1: if `r01_skip_no_extra_wrapper` wins, edit every round 2
+script like this:
+
+```bash
+BEST_ENV_FRAMESKIP="4"
+BEST_WRAPPER_SKIP="1"
+```
+
 ## Running One Experiment Without SLURM
 
 ```bash

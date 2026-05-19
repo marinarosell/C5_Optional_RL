@@ -12,6 +12,8 @@ warnings.filterwarnings('ignore')
 import datetime
 import collections
 import json
+import os
+import sys
 import time
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
@@ -28,6 +30,18 @@ try:
     _HAS_WANDB = True
 except ImportError:
     _HAS_WANDB = False
+
+
+def require_wandb_available():
+    """Fail loudly when W&B logging was requested but cannot run."""
+    if not _HAS_WANDB:
+        raise RuntimeError(
+            'Weights & Biases logging was requested with --use-wandb, but the '
+            'wandb package is not installed in this Python environment. Install '
+            'it with `pip install wandb` or run with USE_WANDB=0.'
+        )
+    if os.environ.get('WANDB_MODE') == 'disabled':
+        raise RuntimeError('WANDB_MODE=disabled, so this run will not be saved to W&B.')
 
 
 @dataclass
@@ -310,8 +324,10 @@ def train(
     """Train the DQN agent and save the resulting model parameters."""
     gym.register_envs(ale_py)
 
-    if use_wandb and _HAS_WANDB:
-        wandb.init(project=project_name, name=run_name, config={
+    wandb_run = None
+    if use_wandb:
+        require_wandb_available()
+        wandb_run = wandb.init(project=project_name, name=run_name, config={
             'env_name': env_name,
             'env_frameskip': env_frameskip,
             'wrapper_skip': wrapper_skip,
@@ -328,8 +344,7 @@ def train(
             'max_frames': max_frames,
             'mean_reward_bound': mean_reward_bound,
         })
-    elif use_wandb:
-        print('wandb not installed, continuing without logging.')
+        print('W&B run:', wandb_run.url)
 
     start_time = time.time()
     start_datetime = datetime.datetime.now()
@@ -452,6 +467,15 @@ def train(
     print('Training metrics saved to', metrics_path)
 
     if use_wandb and _HAS_WANDB:
+        wandb.log({
+            'train/elapsed_seconds': elapsed_seconds,
+            'train/frames': frame_idx,
+            'train/episodes': len(total_rewards),
+            'train/best_mean_reward': best_mean_reward,
+            'train/final_mean_reward': train_metrics['final_mean_reward'],
+        })
+        wandb.save(str(metrics_path))
+        wandb.save(str(save_file))
         wandb.finish()
 
     return net, env, total_rewards
@@ -563,9 +587,33 @@ def build_config(values):
     return TrainConfig(**values)
 
 
+def print_torch_diagnostics():
+    """Print enough CUDA/PyTorch info to debug SLURM environment issues."""
+    print('Python executable:', sys.executable)
+    print('Torch version:', torch.__version__)
+    print('Torch CUDA version:', torch.version.cuda)
+    print('CUDA_VISIBLE_DEVICES:', os.environ.get('CUDA_VISIBLE_DEVICES', '<unset>'))
+    print('torch.cuda.is_available():', torch.cuda.is_available())
+    print('torch.cuda.device_count():', torch.cuda.device_count())
+    if torch.cuda.is_available():
+        print('CUDA device 0:', torch.cuda.get_device_name(0))
+
+
+def select_device(require_cuda=False):
+    print_torch_diagnostics()
+    if require_cuda and not torch.cuda.is_available():
+        raise RuntimeError(
+            'CUDA was required but torch.cuda.is_available() is False. '
+            'This usually means the job is using a CPU-only PyTorch install, '
+            'the wrong Python environment, or SLURM did not allocate a GPU.'
+        )
+    return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
 if __name__ == '__main__':
     config, config_path, experiment_name = parse_args()
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    require_cuda = os.environ.get('REQUIRE_CUDA', '0') == '1'
+    device = select_device(require_cuda=require_cuda)
     print('Using device:', device)
     if config_path:
         print(f'Loaded config: {config_path}')
@@ -582,8 +630,6 @@ if __name__ == '__main__':
             wrapper_skip=config.wrapper_skip,
         )
     else:
-        if config.use_wandb and not _HAS_WANDB:
-            print('WARNING: wandb requested but not installed; continuing without it.')
         train(
             env_name=config.env_name,
             env_frameskip=config.env_frameskip,

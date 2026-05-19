@@ -5,11 +5,9 @@ opencv-python
 Pillow
 matplotlib
 pandas
+wandb
 
 # Gymnasium Atari support for ALE/Pong-v5.
 # Recent ale-py releases include the Atari ROMs used by Gymnasium ALE envs.
 gymnasium[atari]
 ale-py
-
-# Optional: uncomment if you want Weights & Biases logging with --use-wandb.
-# wandb
