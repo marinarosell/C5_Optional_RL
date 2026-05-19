@@ -31,6 +31,7 @@ def parse_args():
     parser.add_argument('--job-name-prefix', default='pong', help='Prefix for SLURM job names in --mode sbatch.')
     parser.add_argument('--logs-dir', default='logs', help='Directory for SLURM stdout/stderr files.')
     parser.add_argument('--python-bin', default=sys.executable, help='Python executable used inside generated experiment commands.')
+    parser.add_argument('--buffered', action='store_true', help='Do not add Python -u to generated commands.')
     return parser.parse_args()
 
 
@@ -53,43 +54,53 @@ def quote_command(command):
     return ' '.join(shlex.quote(part) for part in command)
 
 
+def python_command(args):
+    command = [args.python_bin]
+    if not args.buffered:
+        command.append('-u')
+    return command
+
+
 def build_experiment_command(args, experiment):
-    commands = []
-    if not args.skip_training:
-        command = [
-            args.python_bin,
-            'src/train_pong_dqn.py',
-            '--config',
-            args.config,
-            '--experiment',
-            experiment,
-        ]
-        if args.max_frames is not None:
-            command.extend(['--max-frames', str(args.max_frames)])
-        if args.use_wandb:
-            command.append('--use-wandb')
-        commands.append(command)
-
-    if not args.skip_benchmark:
-        commands.append([
-            args.python_bin,
-            'src/benchmark_pong_dqn.py',
-            '--config',
-            args.config,
-            '--experiment',
-            experiment,
-            '--episodes',
-            str(args.benchmark_episodes),
-            '--prefix',
-            experiment,
-        ])
-
-    return commands
+    command = [
+        *python_command(args),
+        'src/run_single_experiment.py',
+        '--config',
+        args.config,
+        '--experiment',
+        experiment,
+        '--benchmark-episodes',
+        str(args.benchmark_episodes),
+    ]
+    if args.skip_training:
+        command.append('--skip-training')
+    if args.skip_benchmark:
+        command.append('--skip-benchmark')
+    if args.max_frames is not None:
+        command.extend(['--max-frames', str(args.max_frames)])
+    if args.use_wandb:
+        command.append('--use-wandb')
+    return [command]
 
 
 def run_experiment_locally(commands):
     for command in commands:
         run_command(command)
+
+
+def run_experiment_direct(args, experiment):
+    from run_single_experiment import run_configured_experiment
+
+    print(f'\n>>> Running {experiment} via direct function calls', flush=True)
+    run_configured_experiment(
+        config_path=args.config,
+        experiment=experiment,
+        skip_training=args.skip_training,
+        skip_benchmark=args.skip_benchmark,
+        benchmark_episodes=args.benchmark_episodes,
+        max_frames=args.max_frames,
+        use_wandb=args.use_wandb,
+    )
 
 
 def submit_sbatch(args, experiment, commands):
@@ -98,6 +109,7 @@ def submit_sbatch(args, experiment, commands):
 
     logs_dir = Path(args.logs_dir)
     logs_dir.mkdir(parents=True, exist_ok=True)
+    command_string = quote_command_sequence(commands)
 
     sbatch_command = [
         'sbatch',
@@ -108,8 +120,9 @@ def submit_sbatch(args, experiment, commands):
         '--error',
         str(logs_dir / f'{experiment}_%j.err'),
         args.script,
-        quote_command_sequence(commands),
+        command_string,
     ]
+    print(f'\nExperiment {experiment} command:\n{command_string}')
     run_command(sbatch_command)
 
 
@@ -124,7 +137,7 @@ def main():
     for experiment in experiments:
         commands = build_experiment_command(args, experiment)
         if args.mode == 'local':
-            run_experiment_locally(commands)
+            run_experiment_direct(args, experiment)
         elif args.mode == 'print':
             print(quote_command_sequence(commands))
         elif args.mode == 'sbatch':

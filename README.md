@@ -38,6 +38,8 @@ bash scripts/run_experiment_round1.sh
 ```
 
 The launcher itself does not need a GPU; each submitted child job requests one.
+Each child job runs `src/run_single_experiment.py`, which imports the training
+and benchmark functions and executes them directly in one Python process.
 Override the round or benchmark size with environment variables:
 
 ```bash

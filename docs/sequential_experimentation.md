@@ -67,7 +67,10 @@ bash scripts/run_experiment_round1.sh
 ```
 
 The launcher does not need a GPU; each child job submitted through
-`scripts/slurm_experiment_job.sh` requests one GPU. To run a different round:
+`scripts/slurm_experiment_job.sh` requests one GPU. Each child job runs
+`src/run_single_experiment.py`, which imports the training and benchmark code
+and calls the Python functions directly in one process. To run a different
+round:
 
 ```bash
 ROUND_NAME=round_2_learning_rate bash scripts/run_experiment_round1.sh
