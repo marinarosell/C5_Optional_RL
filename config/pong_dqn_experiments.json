@@ -1,0 +1,255 @@
+{
+  "defaults": {
+    "env_name": "ALE/Pong-v5",
+    "env_frameskip": 4,
+    "wrapper_skip": 4,
+    "seed": 42,
+    "gamma": 0.99,
+    "batch_size": 32,
+    "learning_rate": 0.0001,
+    "replay_size": 10000,
+    "replay_start_size": 10000,
+    "sync_target_frames": 1000,
+    "eps_start": 1.0,
+    "eps_decay": 0.999985,
+    "eps_min": 0.02,
+    "max_frames": 500000,
+    "mean_reward_bound": 19.0,
+    "reward_average_size": 10,
+    "convergence_reward_thresholds": [-15.0, -10.0, -5.0, 0.0],
+    "use_wandb": false,
+    "wandb_project": "C5-RL-Pong-DQN"
+  },
+  "rounds": {
+    "round_0_reference": [
+      "r00_baseline_current"
+    ],
+    "round_1_preprocessing": [
+      "r01_skip_current",
+      "r01_skip_no_extra_wrapper",
+      "r01_skip_classic_dqn",
+      "r01_skip_no_skip_high_control"
+    ],
+    "round_2_learning_rate": [
+      "r02_lr_2_5e_5",
+      "r02_lr_5e_5",
+      "r02_lr_1e_4",
+      "r02_lr_2_5e_4"
+    ],
+    "round_3_replay": [
+      "r03_replay_10000",
+      "r03_replay_50000",
+      "r03_replay_100000"
+    ],
+    "round_4_epsilon_decay": [
+      "r04_eps_slow",
+      "r04_eps_default",
+      "r04_eps_fast"
+    ],
+    "round_5_target_sync": [
+      "r05_sync_500",
+      "r05_sync_1000",
+      "r05_sync_5000"
+    ],
+    "round_6_confirmation_seeds": [
+      "r06_best_seed_1",
+      "r06_best_seed_2",
+      "r06_best_seed_3"
+    ]
+  },
+  "experiments": {
+    "baseline": {
+      "run_name": "pong_dqn_baseline",
+      "save_path": "models/pong_dqn_baseline.dat"
+    },
+    "r00_baseline_current": {
+      "run_name": "r00_baseline_current",
+      "save_path": "models/r00_baseline_current.dat"
+    },
+    "r01_skip_current": {
+      "run_name": "r01_skip_current",
+      "env_frameskip": 4,
+      "wrapper_skip": 4,
+      "save_path": "models/r01_skip_current.dat"
+    },
+    "r01_skip_no_extra_wrapper": {
+      "run_name": "r01_skip_no_extra_wrapper",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "save_path": "models/r01_skip_no_extra_wrapper.dat"
+    },
+    "r01_skip_classic_dqn": {
+      "run_name": "r01_skip_classic_dqn",
+      "env_frameskip": 1,
+      "wrapper_skip": 4,
+      "save_path": "models/r01_skip_classic_dqn.dat"
+    },
+    "r01_skip_no_skip_high_control": {
+      "run_name": "r01_skip_no_skip_high_control",
+      "env_frameskip": 1,
+      "wrapper_skip": 1,
+      "save_path": "models/r01_skip_no_skip_high_control.dat"
+    },
+    "r02_lr_2_5e_5": {
+      "run_name": "r02_lr_2_5e_5",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.000025,
+      "save_path": "models/r02_lr_2_5e_5.dat"
+    },
+    "r02_lr_5e_5": {
+      "run_name": "r02_lr_5e_5",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.00005,
+      "save_path": "models/r02_lr_5e_5.dat"
+    },
+    "r02_lr_1e_4": {
+      "run_name": "r02_lr_1e_4",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "save_path": "models/r02_lr_1e_4.dat"
+    },
+    "r02_lr_2_5e_4": {
+      "run_name": "r02_lr_2_5e_4",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.00025,
+      "save_path": "models/r02_lr_2_5e_4.dat"
+    },
+    "r03_replay_10000": {
+      "run_name": "r03_replay_10000",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 10000,
+      "replay_start_size": 10000,
+      "save_path": "models/r03_replay_10000.dat"
+    },
+    "r03_replay_50000": {
+      "run_name": "r03_replay_50000",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 50000,
+      "replay_start_size": 20000,
+      "save_path": "models/r03_replay_50000.dat"
+    },
+    "r03_replay_100000": {
+      "run_name": "r03_replay_100000",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 100000,
+      "replay_start_size": 20000,
+      "save_path": "models/r03_replay_100000.dat"
+    },
+    "r04_eps_slow": {
+      "run_name": "r04_eps_slow",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 50000,
+      "replay_start_size": 20000,
+      "eps_decay": 0.99999,
+      "save_path": "models/r04_eps_slow.dat"
+    },
+    "r04_eps_default": {
+      "run_name": "r04_eps_default",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 50000,
+      "replay_start_size": 20000,
+      "eps_decay": 0.999985,
+      "save_path": "models/r04_eps_default.dat"
+    },
+    "r04_eps_fast": {
+      "run_name": "r04_eps_fast",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 50000,
+      "replay_start_size": 20000,
+      "eps_decay": 0.99995,
+      "save_path": "models/r04_eps_fast.dat"
+    },
+    "r05_sync_500": {
+      "run_name": "r05_sync_500",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 50000,
+      "replay_start_size": 20000,
+      "eps_decay": 0.999985,
+      "sync_target_frames": 500,
+      "save_path": "models/r05_sync_500.dat"
+    },
+    "r05_sync_1000": {
+      "run_name": "r05_sync_1000",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 50000,
+      "replay_start_size": 20000,
+      "eps_decay": 0.999985,
+      "sync_target_frames": 1000,
+      "save_path": "models/r05_sync_1000.dat"
+    },
+    "r05_sync_5000": {
+      "run_name": "r05_sync_5000",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 50000,
+      "replay_start_size": 20000,
+      "eps_decay": 0.999985,
+      "sync_target_frames": 5000,
+      "save_path": "models/r05_sync_5000.dat"
+    },
+    "r06_best_seed_1": {
+      "run_name": "r06_best_seed_1",
+      "seed": 42,
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 50000,
+      "replay_start_size": 20000,
+      "eps_decay": 0.999985,
+      "sync_target_frames": 1000,
+      "save_path": "models/r06_best_seed_1.dat"
+    },
+    "r06_best_seed_2": {
+      "run_name": "r06_best_seed_2",
+      "seed": 123,
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 50000,
+      "replay_start_size": 20000,
+      "eps_decay": 0.999985,
+      "sync_target_frames": 1000,
+      "save_path": "models/r06_best_seed_2.dat"
+    },
+    "r06_best_seed_3": {
+      "run_name": "r06_best_seed_3",
+      "seed": 999,
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "learning_rate": 0.0001,
+      "replay_size": 50000,
+      "replay_start_size": 20000,
+      "eps_decay": 0.999985,
+      "sync_target_frames": 1000,
+      "save_path": "models/r06_best_seed_3.dat"
+    },
+    "smoke_test": {
+      "run_name": "pong_dqn_smoke_test",
+      "max_frames": 2000,
+      "replay_start_size": 500,
+      "replay_size": 2000,
+      "save_path": "models/pong_dqn_smoke_test.dat"
+    }
+  }
+}
