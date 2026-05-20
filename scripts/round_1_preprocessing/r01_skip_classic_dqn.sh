@@ -11,9 +11,6 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT_DIR"
-mkdir -p logs models results videos/benchmarks
 
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 CONFIG="config/pong_dqn_experiments.json"

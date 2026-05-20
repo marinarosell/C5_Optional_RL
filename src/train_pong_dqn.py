@@ -5,25 +5,25 @@ This script extracts the notebook training pipeline into a reusable CLI script
 with configurable hyperparameters and optional Weights & Biases logging.
 """
 
+import torch.optim as optim
+import torch.nn as nn
+import torch
+import cv2
+import numpy as np
+import ale_py
+import gymnasium as gym
+from pathlib import Path
+from dataclasses import asdict, dataclass, field, fields
+import time
+import sys
+import os
+import json
+import collections
+import datetime
 import argparse
 import warnings
 warnings.filterwarnings('ignore')
 
-import datetime
-import collections
-import json
-import os
-import sys
-import time
-from dataclasses import asdict, dataclass, field, fields
-from pathlib import Path
-import gymnasium as gym
-import ale_py
-import numpy as np
-import cv2
-import torch
-import torch.nn as nn
-import torch.optim as optim
 
 try:
     import wandb
@@ -41,7 +41,8 @@ def require_wandb_available():
             'it with `pip install wandb` or run with USE_WANDB=0.'
         )
     if os.environ.get('WANDB_MODE') == 'disabled':
-        raise RuntimeError('WANDB_MODE=disabled, so this run will not be saved to W&B.')
+        raise RuntimeError(
+            'WANDB_MODE=disabled, so this run will not be saved to W&B.')
 
 
 @dataclass
@@ -50,6 +51,7 @@ class TrainConfig:
 
     env_name: str = 'ALE/Pong-v5'
     env_frameskip: int = None
+    env_repeat_action_probability: float = None
     wrapper_skip: int = 4
     seed: int = None
     gamma: float = 0.99
@@ -64,7 +66,8 @@ class TrainConfig:
     max_frames: int = 500000
     mean_reward_bound: float = 19.0
     reward_average_size: int = 10
-    convergence_reward_thresholds: list = field(default_factory=lambda: [-15.0, -10.0, -5.0, 0.0])
+    convergence_reward_thresholds: list = field(
+        default_factory=lambda: [-15.0, -10.0, -5.0, 0.0])
     save_path: str = 'ALE_Pong_v5_dqn_solution.dat'
     training_metrics_path: str = ''
     use_wandb: bool = False
@@ -74,11 +77,14 @@ class TrainConfig:
     model_path: str = 'ALE_Pong_v5_dqn_solution.dat'
 
 
-def make_env(env_name: str, render_mode=None, env_frameskip=None, wrapper_skip=4):
+def make_env(env_name: str, render_mode=None, env_frameskip=None,
+             env_repeat_action_probability=None, wrapper_skip=4):
     """Create the wrapped Atari environment for Pong training."""
     kwargs = {'render_mode': render_mode}
     if env_frameskip is not None:
         kwargs['frameskip'] = env_frameskip
+    if env_repeat_action_probability is not None:
+        kwargs['repeat_action_probability'] = env_repeat_action_probability
     env = gym.make(env_name, **kwargs)
     if wrapper_skip and wrapper_skip > 1:
         env = MaxAndSkipEnv(env, skip=wrapper_skip)
@@ -94,7 +100,8 @@ def print_env_info(name: str, env):
     """Print basic observation statistics for a wrapped environment."""
     obs, info = env.reset()
     print(f'*** {name} Environment ***')
-    print(f'Observation shape: {obs.shape}, dtype: {obs.dtype}, range: [{obs.min()}, {obs.max()}]')
+    print(
+        f'Observation shape: {obs.shape}, dtype: {obs.dtype}, range: [{obs.min()}, {obs.max()}]')
 
 
 class FireResetEnv(gym.Wrapper):
@@ -158,7 +165,8 @@ class ProcessFrame84(gym.ObservationWrapper):
 
     def __init__(self, env=None):
         super(ProcessFrame84, self).__init__(env)
-        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(84, 84, 1), dtype=np.uint8)
+        self.observation_space = gym.spaces.Box(
+            low=0, high=255, shape=(84, 84, 1), dtype=np.uint8)
 
     def observation(self, obs):
         return ProcessFrame84.process(obs)
@@ -171,8 +179,10 @@ class ProcessFrame84(gym.ObservationWrapper):
             img = np.reshape(frame, [250, 160, 3]).astype(np.float32)
         else:
             raise ValueError(f'Unknown resolution: {frame.size}')
-        img = img[:, :, 0] * 0.299 + img[:, :, 1] * 0.587 + img[:, :, 2] * 0.114
-        resized_screen = cv2.resize(img, (84, 110), interpolation=cv2.INTER_AREA)
+        img = img[:, :, 0] * 0.299 + img[:, :, 1] * \
+            0.587 + img[:, :, 2] * 0.114
+        resized_screen = cv2.resize(
+            img, (84, 110), interpolation=cv2.INTER_AREA)
         x_t = resized_screen[18:102, :]
         x_t = np.reshape(x_t, [84, 84, 1])
         return x_t.astype(np.uint8)
@@ -185,10 +195,12 @@ class BufferWrapper(gym.ObservationWrapper):
         super(BufferWrapper, self).__init__(env)
         self.dtype = dtype
         old_space = env.observation_space
-        self.observation_space = gym.spaces.Box(old_space.low.repeat(n_steps, axis=0), old_space.high.repeat(n_steps, axis=0), dtype=dtype)
+        self.observation_space = gym.spaces.Box(old_space.low.repeat(
+            n_steps, axis=0), old_space.high.repeat(n_steps, axis=0), dtype=dtype)
 
     def reset(self, *, seed=None, options=None):
-        self.buffer = np.zeros_like(self.observation_space.low, dtype=self.dtype)
+        self.buffer = np.zeros_like(
+            self.observation_space.low, dtype=self.dtype)
         obs, info = self.env.reset(seed=seed, options=options)
         return self.observation(obs), info
 
@@ -204,7 +216,8 @@ class ImageToPyTorch(gym.ObservationWrapper):
     def __init__(self, env):
         super(ImageToPyTorch, self).__init__(env)
         old_shape = self.observation_space.shape
-        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(old_shape[-1], old_shape[0], old_shape[1]), dtype=np.uint8)
+        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(
+            old_shape[-1], old_shape[0], old_shape[1]), dtype=np.uint8)
 
     def observation(self, observation):
         return np.moveaxis(observation, 2, 0)
@@ -233,7 +246,8 @@ def make_DQN(input_shape, output_shape):
     )
 
 
-Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
+Experience = collections.namedtuple('Experience', field_names=[
+                                    'state', 'action', 'reward', 'done', 'new_state'])
 
 
 class ExperienceReplay:
@@ -250,7 +264,8 @@ class ExperienceReplay:
 
     def sample(self, batch_size):
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
-        states, actions, rewards, dones, next_states = zip(*[self.buffer[idx] for idx in indices])
+        states, actions, rewards, dones, next_states = zip(
+            *[self.buffer[idx] for idx in indices])
         return np.array(states), np.array(actions), np.array(rewards, dtype=np.float32), np.array(dones, dtype=np.uint8), np.array(next_states)
 
 
@@ -276,7 +291,8 @@ class Agent:
         if np.random.random() < epsilon:
             action = self.env.action_space.sample()
         else:
-            state_tensor = torch.tensor(np.array([self.current_state]), dtype=torch.float32, device=device)
+            state_tensor = torch.tensor(
+                np.array([self.current_state]), dtype=torch.float32, device=device)
             q_values = net(state_tensor)
             _, action_tensor = torch.max(q_values, dim=1)
             action = int(action_tensor.item())
@@ -285,7 +301,8 @@ class Agent:
         done = terminated or truncated
         self.total_reward += reward
 
-        experience = Experience(self.current_state, action, reward, done, new_state)
+        experience = Experience(
+            self.current_state, action, reward, done, new_state)
         self.exp_replay_buffer.append(experience)
         self.current_state = new_state
 
@@ -299,6 +316,7 @@ class Agent:
 def train(
     env_name,
     env_frameskip,
+    env_repeat_action_probability,
     wrapper_skip,
     seed,
     gamma,
@@ -330,6 +348,7 @@ def train(
         wandb_run = wandb.init(project=project_name, name=run_name, config={
             'env_name': env_name,
             'env_frameskip': env_frameskip,
+            'env_repeat_action_probability': env_repeat_action_probability,
             'wrapper_skip': wrapper_skip,
             'seed': seed,
             'gamma': gamma,
@@ -354,11 +373,14 @@ def train(
         np.random.seed(seed)
         torch.manual_seed(seed)
 
-    env = make_env(env_name, env_frameskip=env_frameskip, wrapper_skip=wrapper_skip)
+    env = make_env(env_name, env_frameskip=env_frameskip,
+                   env_repeat_action_probability=env_repeat_action_probability,
+                   wrapper_skip=wrapper_skip)
     if seed is not None:
         env.action_space.seed(seed)
     net = make_DQN(env.observation_space.shape, env.action_space.n).to(device)
-    target_net = make_DQN(env.observation_space.shape, env.action_space.n).to(device)
+    target_net = make_DQN(env.observation_space.shape,
+                          env.action_space.n).to(device)
     target_net.load_state_dict(net.state_dict())
 
     buffer = ExperienceReplay(replay_size)
@@ -369,7 +391,8 @@ def train(
     frame_idx = 0
     total_rewards = []
     best_mean_reward = None
-    threshold_frames = {str(threshold): None for threshold in convergence_reward_thresholds}
+    threshold_frames = {
+        str(threshold): None for threshold in convergence_reward_thresholds}
 
     while frame_idx < max_frames:
         frame_idx += 1
@@ -379,9 +402,11 @@ def train(
         if reward is not None:
             total_rewards.append(reward)
             mean_reward = np.mean(total_rewards[-reward_average_size:])
-            print(f'Frame: {frame_idx} | Games: {len(total_rewards)} | Mean reward: {mean_reward:.3f} | epsilon: {epsilon:.3f}')
+            print(
+                f'Frame: {frame_idx} | Games: {len(total_rewards)} | Mean reward: {mean_reward:.3f} | epsilon: {epsilon:.3f}')
             if use_wandb and _HAS_WANDB:
-                wandb.log({'epsilon': epsilon, 'reward_100': mean_reward, 'reward': reward}, step=frame_idx)
+                wandb.log({'epsilon': epsilon, 'reward_100': mean_reward,
+                          'reward': reward}, step=frame_idx)
 
             if best_mean_reward is None or best_mean_reward < mean_reward:
                 best_mean_reward = mean_reward
@@ -392,20 +417,24 @@ def train(
                     threshold_frames[threshold_key] = frame_idx
 
             if mean_reward >= mean_reward_bound:
-                print(f'Solved after {frame_idx} frames and {len(total_rewards)} games!')
+                print(
+                    f'Solved after {frame_idx} frames and {len(total_rewards)} games!')
                 break
 
         if len(buffer) < replay_start_size:
             continue
 
-        states, actions, rewards, dones, next_states = buffer.sample(batch_size)
+        states, actions, rewards, dones, next_states = buffer.sample(
+            batch_size)
         states_v = torch.tensor(states, dtype=torch.float32, device=device)
-        next_states_v = torch.tensor(next_states, dtype=torch.float32, device=device)
+        next_states_v = torch.tensor(
+            next_states, dtype=torch.float32, device=device)
         actions_v = torch.tensor(actions, device=device)
         rewards_v = torch.tensor(rewards, device=device)
         done_mask = torch.BoolTensor(dones).to(device)
 
-        state_action_values = net(states_v).gather(1, actions_v.unsqueeze(-1)).squeeze(-1)
+        state_action_values = net(states_v).gather(
+            1, actions_v.unsqueeze(-1)).squeeze(-1)
 
         next_state_values = target_net(next_states_v).max(1)[0]
         next_state_values[done_mask] = 0.0
@@ -429,7 +458,8 @@ def train(
 
     end_datetime = datetime.datetime.now()
     elapsed_seconds = time.time() - start_time
-    metrics_path = Path(training_metrics_path) if training_metrics_path else Path('results') / f'{run_name}_train_metrics.json'
+    metrics_path = Path(training_metrics_path) if training_metrics_path else Path(
+        'results') / f'{run_name}_train_metrics.json'
     metrics_path.parent.mkdir(parents=True, exist_ok=True)
     train_metrics = {
         'run_name': run_name,
@@ -483,7 +513,8 @@ def train(
 
 def evaluate(env_name, model_path, device='cpu', env_frameskip=None, wrapper_skip=4):
     """Load a trained model and run a single evaluation episode."""
-    env = make_env(env_name, env_frameskip=env_frameskip, wrapper_skip=wrapper_skip)
+    env = make_env(env_name, env_frameskip=env_frameskip,
+                   wrapper_skip=wrapper_skip)
     net = make_DQN(env.observation_space.shape, env.action_space.n).to(device)
     net.load_state_dict(torch.load(model_path, map_location=device))
     net.eval()
@@ -493,7 +524,8 @@ def evaluate(env_name, model_path, device='cpu', env_frameskip=None, wrapper_ski
     terminated = False
     truncated = False
     while not (terminated or truncated):
-        state_v = torch.tensor(np.array([state]), dtype=torch.float32, device=device)
+        state_v = torch.tensor(
+            np.array([state]), dtype=torch.float32, device=device)
         q_vals = net(state_v)
         action = int(torch.argmax(q_vals, dim=1).item())
         next_state, reward, terminated, truncated, _ = env.step(action)
@@ -508,35 +540,46 @@ def parse_args():
     """Parse CLI arguments, optionally merged with a JSON experiment config."""
     parser = argparse.ArgumentParser(description='Train DQN on ALE/Pong-v5')
     parser.add_argument('--config', help='Path to a JSON config file.')
-    parser.add_argument('--experiment', help='Experiment name inside config["experiments"].')
+    parser.add_argument(
+        '--experiment', help='Experiment name inside config["experiments"].')
     parser.add_argument('--env-name', dest='env_name')
     parser.add_argument('--env-frameskip', dest='env_frameskip', type=int)
+    parser.add_argument('--env-repeat-action-probability',
+                        dest='env_repeat_action_probability', type=float)
     parser.add_argument('--wrapper-skip', dest='wrapper_skip', type=int)
     parser.add_argument('--seed', type=int)
     parser.add_argument('--gamma', type=float)
     parser.add_argument('--batch-size', dest='batch_size', type=int)
     parser.add_argument('--learning-rate', dest='learning_rate', type=float)
     parser.add_argument('--replay-size', dest='replay_size', type=int)
-    parser.add_argument('--replay-start-size', dest='replay_start_size', type=int)
-    parser.add_argument('--sync-target-frames', dest='sync_target_frames', type=int)
+    parser.add_argument('--replay-start-size',
+                        dest='replay_start_size', type=int)
+    parser.add_argument('--sync-target-frames',
+                        dest='sync_target_frames', type=int)
     parser.add_argument('--eps-start', dest='eps_start', type=float)
     parser.add_argument('--eps-decay', dest='eps_decay', type=float)
     parser.add_argument('--eps-min', dest='eps_min', type=float)
     parser.add_argument('--max-frames', dest='max_frames', type=int)
-    parser.add_argument('--mean-reward-bound', dest='mean_reward_bound', type=float)
-    parser.add_argument('--reward-average-size', dest='reward_average_size', type=int)
-    parser.add_argument('--training-metrics-path', dest='training_metrics_path')
+    parser.add_argument('--mean-reward-bound',
+                        dest='mean_reward_bound', type=float)
+    parser.add_argument('--reward-average-size',
+                        dest='reward_average_size', type=int)
+    parser.add_argument('--training-metrics-path',
+                        dest='training_metrics_path')
     parser.add_argument('--save-path', dest='save_path')
-    parser.add_argument('--use-wandb', dest='use_wandb', action='store_true', default=None)
+    parser.add_argument('--use-wandb', dest='use_wandb',
+                        action='store_true', default=None)
     parser.add_argument('--no-wandb', dest='use_wandb', action='store_false')
     parser.add_argument('--wandb-project', dest='wandb_project')
     parser.add_argument('--run-name', dest='run_name')
-    parser.add_argument('--eval-only', dest='eval_only', action='store_true', default=None)
+    parser.add_argument('--eval-only', dest='eval_only',
+                        action='store_true', default=None)
     parser.add_argument('--train-only', dest='eval_only', action='store_false')
     parser.add_argument('--model-path', dest='model_path')
     args = parser.parse_args()
 
-    config_values = load_config(args.config, args.experiment) if args.config else {}
+    config_values = load_config(
+        args.config, args.experiment) if args.config else {}
     cli_values = {
         key: value for key, value in vars(args).items()
         if key not in ('config', 'experiment') and value is not None
@@ -566,14 +609,17 @@ def load_config(config_path, experiment_name=None):
     if experiment_name:
         if experiment_name not in experiments:
             available = ', '.join(sorted(experiments)) or '<none>'
-            raise ValueError(f'Experiment "{experiment_name}" not found. Available: {available}')
+            raise ValueError(
+                f'Experiment "{experiment_name}" not found. Available: {available}')
         selected = experiments[experiment_name]
         if not isinstance(selected, dict):
-            raise ValueError(f'Experiment "{experiment_name}" must be an object.')
+            raise ValueError(
+                f'Experiment "{experiment_name}" must be an object.')
 
     if not experiment_name and experiments:
         available = ', '.join(sorted(experiments))
-        print(f'No --experiment selected; using defaults only. Available experiments: {available}')
+        print(
+            f'No --experiment selected; using defaults only. Available experiments: {available}')
 
     return {**base_config, **selected}
 
@@ -583,7 +629,8 @@ def build_config(values):
     valid_fields = {field.name for field in fields(TrainConfig)}
     unknown_keys = sorted(set(values) - valid_fields)
     if unknown_keys:
-        raise ValueError(f'Unknown config option(s): {", ".join(unknown_keys)}')
+        raise ValueError(
+            f'Unknown config option(s): {", ".join(unknown_keys)}')
     return TrainConfig(**values)
 
 
@@ -592,7 +639,8 @@ def print_torch_diagnostics():
     print('Python executable:', sys.executable)
     print('Torch version:', torch.__version__)
     print('Torch CUDA version:', torch.version.cuda)
-    print('CUDA_VISIBLE_DEVICES:', os.environ.get('CUDA_VISIBLE_DEVICES', '<unset>'))
+    print('CUDA_VISIBLE_DEVICES:', os.environ.get(
+        'CUDA_VISIBLE_DEVICES', '<unset>'))
     print('torch.cuda.is_available():', torch.cuda.is_available())
     print('torch.cuda.device_count():', torch.cuda.device_count())
     if torch.cuda.is_available():
@@ -627,12 +675,14 @@ if __name__ == '__main__':
             config.model_path,
             device=device,
             env_frameskip=config.env_frameskip,
+            env_repeat_action_probability=config.env_repeat_action_probability,
             wrapper_skip=config.wrapper_skip,
         )
     else:
         train(
             env_name=config.env_name,
             env_frameskip=config.env_frameskip,
+            env_repeat_action_probability=config.env_repeat_action_probability,
             wrapper_skip=config.wrapper_skip,
             seed=config.seed,
             gamma=config.gamma,

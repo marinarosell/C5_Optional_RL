@@ -225,3 +225,6 @@ videos/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+wandb/

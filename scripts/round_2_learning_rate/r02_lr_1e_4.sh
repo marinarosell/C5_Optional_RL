@@ -12,11 +12,11 @@
 EXPERIMENT="r02_lr_1e_4"
 
 # TODO: fill with the best preprocessing parameters from round 1.
-BEST_ENV_FRAMESKIP=""
-BEST_WRAPPER_SKIP=""
+BEST_ENV_FRAMESKIP="1"
+BEST_WRAPPER_SKIP="4"
 
 REQUIRED_BEST_PARAMS=(BEST_ENV_FRAMESKIP BEST_WRAPPER_SKIP)
 TRAIN_OVERRIDES=(--env-frameskip "$BEST_ENV_FRAMESKIP" --wrapper-skip "$BEST_WRAPPER_SKIP")
 BENCHMARK_OVERRIDES=(--env-frameskip "$BEST_ENV_FRAMESKIP" --wrapper-skip "$BEST_WRAPPER_SKIP")
 
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/_run_slurm_experiment.sh"
+source "scripts/_run_slurm_experiment.sh"

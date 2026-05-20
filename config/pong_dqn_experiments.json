@@ -16,7 +16,12 @@
     "max_frames": 500000,
     "mean_reward_bound": 19.0,
     "reward_average_size": 10,
-    "convergence_reward_thresholds": [-15.0, -10.0, -5.0, 0.0],
+    "convergence_reward_thresholds": [
+      -15.0,
+      -10.0,
+      -5.0,
+      0.0
+    ],
     "use_wandb": false,
     "wandb_project": "C5-RL-Pong-DQN"
   },
@@ -90,11 +95,40 @@
       "wrapper_skip": 1,
       "save_path": "models/r01_skip_no_skip_high_control.dat"
     },
+    "r01_skip_classic_dqn_repeat_prob0": {
+      "run_name": "r01_skip_classic_dqn_repeat_prob0",
+      "env_frameskip": 1,
+      "wrapper_skip": 4,
+      "env_repeat_action_probability": 0.0,
+      "save_path": "models/r01_skip_classic_dqn_repeat_prob0.dat"
+    },
+    "r01_skip_no_extra_wrapper_repeat_prob0": {
+      "run_name": "r01_skip_no_extra_wrapper_repeat_prob0",
+      "env_frameskip": 4,
+      "wrapper_skip": 1,
+      "env_repeat_action_probability": 0.0,
+      "save_path": "models/r01_skip_no_extra_wrapper_repeat_prob0.dat"
+    },
+    "r01_skip_current_repeat_prob0": {
+      "run_name": "r01_skip_current_repeat_prob0",
+      "env_frameskip": 4,
+      "wrapper_skip": 4,
+      "env_repeat_action_probability": 0.0,
+      "save_path": "models/r01_skip_current_repeat_prob0.dat"
+    },
+    "r01_skip_no_skip_high_control_repeat_prob0": {
+      "run_name": "r01_skip_no_skip_high_control_repeat_prob0",
+      "env_frameskip": 1,
+      "wrapper_skip": 1,
+      "env_repeat_action_probability": 0.0,
+      "save_path": "models/r01_skip_no_skip_high_control_repeat_prob0.dat"
+    },
     "r02_lr_2_5e_5": {
       "run_name": "r02_lr_2_5e_5",
       "env_frameskip": 4,
       "wrapper_skip": 1,
       "learning_rate": 0.000025,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r02_lr_2_5e_5.dat"
     },
     "r02_lr_5e_5": {
@@ -102,6 +136,7 @@
       "env_frameskip": 4,
       "wrapper_skip": 1,
       "learning_rate": 0.00005,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r02_lr_5e_5.dat"
     },
     "r02_lr_1e_4": {
@@ -109,6 +144,7 @@
       "env_frameskip": 4,
       "wrapper_skip": 1,
       "learning_rate": 0.0001,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r02_lr_1e_4.dat"
     },
     "r02_lr_2_5e_4": {
@@ -116,6 +152,7 @@
       "env_frameskip": 4,
       "wrapper_skip": 1,
       "learning_rate": 0.00025,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r02_lr_2_5e_4.dat"
     },
     "r03_replay_10000": {
@@ -125,6 +162,7 @@
       "learning_rate": 0.0001,
       "replay_size": 10000,
       "replay_start_size": 10000,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r03_replay_10000.dat"
     },
     "r03_replay_50000": {
@@ -134,6 +172,7 @@
       "learning_rate": 0.0001,
       "replay_size": 50000,
       "replay_start_size": 20000,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r03_replay_50000.dat"
     },
     "r03_replay_100000": {
@@ -143,6 +182,7 @@
       "learning_rate": 0.0001,
       "replay_size": 100000,
       "replay_start_size": 20000,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r03_replay_100000.dat"
     },
     "r04_eps_slow": {
@@ -153,6 +193,7 @@
       "replay_size": 50000,
       "replay_start_size": 20000,
       "eps_decay": 0.99999,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r04_eps_slow.dat"
     },
     "r04_eps_default": {
@@ -163,6 +204,7 @@
       "replay_size": 50000,
       "replay_start_size": 20000,
       "eps_decay": 0.999985,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r04_eps_default.dat"
     },
     "r04_eps_fast": {
@@ -173,6 +215,7 @@
       "replay_size": 50000,
       "replay_start_size": 20000,
       "eps_decay": 0.99995,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r04_eps_fast.dat"
     },
     "r05_sync_500": {
@@ -184,6 +227,7 @@
       "replay_start_size": 20000,
       "eps_decay": 0.999985,
       "sync_target_frames": 500,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r05_sync_500.dat"
     },
     "r05_sync_1000": {
@@ -195,6 +239,7 @@
       "replay_start_size": 20000,
       "eps_decay": 0.999985,
       "sync_target_frames": 1000,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r05_sync_1000.dat"
     },
     "r05_sync_5000": {
@@ -206,6 +251,7 @@
       "replay_start_size": 20000,
       "eps_decay": 0.999985,
       "sync_target_frames": 5000,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r05_sync_5000.dat"
     },
     "r06_best_seed_1": {
@@ -218,6 +264,7 @@
       "replay_start_size": 20000,
       "eps_decay": 0.999985,
       "sync_target_frames": 1000,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r06_best_seed_1.dat"
     },
     "r06_best_seed_2": {
@@ -230,6 +277,7 @@
       "replay_start_size": 20000,
       "eps_decay": 0.999985,
       "sync_target_frames": 1000,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r06_best_seed_2.dat"
     },
     "r06_best_seed_3": {
@@ -242,14 +290,8 @@
       "replay_start_size": 20000,
       "eps_decay": 0.999985,
       "sync_target_frames": 1000,
+      "env_repeat_action_probability": 0.0,
       "save_path": "models/r06_best_seed_3.dat"
-    },
-    "smoke_test": {
-      "run_name": "pong_dqn_smoke_test",
-      "max_frames": 2000,
-      "replay_start_size": 500,
-      "replay_size": 2000,
-      "save_path": "models/pong_dqn_smoke_test.dat"
     }
   }
 }

@@ -12,14 +12,14 @@
 EXPERIMENT="r04_eps_fast"
 
 # TODO: fill with the best parameters from rounds 1, 2, and 3.
-BEST_ENV_FRAMESKIP=""
-BEST_WRAPPER_SKIP=""
-BEST_LEARNING_RATE=""
-BEST_REPLAY_SIZE=""
-BEST_REPLAY_START_SIZE=""
+BEST_ENV_FRAMESKIP="1"
+BEST_WRAPPER_SKIP="4"
+BEST_LEARNING_RATE="0.0001"
+BEST_REPLAY_SIZE="50000"
+BEST_REPLAY_START_SIZE="20000"
 
 REQUIRED_BEST_PARAMS=(BEST_ENV_FRAMESKIP BEST_WRAPPER_SKIP BEST_LEARNING_RATE BEST_REPLAY_SIZE BEST_REPLAY_START_SIZE)
 TRAIN_OVERRIDES=(--env-frameskip "$BEST_ENV_FRAMESKIP" --wrapper-skip "$BEST_WRAPPER_SKIP" --learning-rate "$BEST_LEARNING_RATE" --replay-size "$BEST_REPLAY_SIZE" --replay-start-size "$BEST_REPLAY_START_SIZE")
 BENCHMARK_OVERRIDES=(--env-frameskip "$BEST_ENV_FRAMESKIP" --wrapper-skip "$BEST_WRAPPER_SKIP")
 
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/_run_slurm_experiment.sh"
+source "scripts/_run_slurm_experiment.sh"

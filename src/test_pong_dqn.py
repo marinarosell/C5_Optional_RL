@@ -28,6 +28,7 @@ def parse_args():
     parser.add_argument('--model-path', help='Model checkpoint to load. Defaults to the experiment save_path.')
     parser.add_argument('--env-name', help='Gymnasium environment name. Defaults to the config env_name.')
     parser.add_argument('--env-frameskip', type=int, help='Override Gymnasium ALE frameskip.')
+    parser.add_argument('--env-repeat-action-probability', type=float, help='Override Gymnasium ALE repeat action probability.')
     parser.add_argument('--wrapper-skip', type=int, help='Override custom MaxAndSkip wrapper skip.')
     parser.add_argument('--episodes', type=int, default=3, help='Number of independent episodes to evaluate.')
     parser.add_argument('--output-dir', default='videos', help='Directory where GIF files are saved.')
@@ -56,6 +57,8 @@ def load_test_config(args):
     env_name = args.env_name or config.env_name
     if args.env_frameskip is not None:
         config.env_frameskip = args.env_frameskip
+    if args.env_repeat_action_probability is not None:
+        config.env_repeat_action_probability = args.env_repeat_action_probability
     if args.wrapper_skip is not None:
         config.wrapper_skip = args.wrapper_skip
     model_path = args.model_path or config.model_path
@@ -149,6 +152,7 @@ def log_benchmark_to_wandb(args, config, metrics_path, summary):
             'episodes': args.episodes,
             'env_name': config.env_name,
             'env_frameskip': config.env_frameskip,
+            'env_repeat_action_probability': config.env_repeat_action_probability,
             'wrapper_skip': config.wrapper_skip,
             'model_path': str(config.save_path),
         },
@@ -188,6 +192,7 @@ def main():
         env_name,
         render_mode='rgb_array',
         env_frameskip=config.env_frameskip,
+        env_repeat_action_probability=config.env_repeat_action_probability,
         wrapper_skip=config.wrapper_skip,
     )
     net = make_DQN(env.observation_space.shape, env.action_space.n).to(device)
