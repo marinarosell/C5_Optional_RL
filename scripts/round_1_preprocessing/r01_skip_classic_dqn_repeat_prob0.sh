@@ -45,11 +45,11 @@ else:
     raise SystemExit("ERROR: PyTorch cannot see CUDA. Check PYTHON_BIN / CUDA PyTorch installation / SLURM GPU allocation.")
 PYTORCH_CHECK
 
-# "$PYTHON_BIN" -u src/train_pong_dqn.py \
-#   --config "$CONFIG" \
-#   --experiment "$EXPERIMENT" \
-#   --env-repeat-action-probability 0.0 \
-#   --use-wandb
+"$PYTHON_BIN" -u src/train_pong_dqn.py \
+  --config "$CONFIG" \
+  --experiment "$EXPERIMENT" \
+  --env-repeat-action-probability 0.0 \
+  --use-wandb
 
 "$PYTHON_BIN" -u src/benchmark_pong_dqn.py \
   --config "$CONFIG" \
