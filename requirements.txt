@@ -1,13 +1,14 @@
-# Core training stack
-torch
-numpy
-opencv-python
-Pillow
-matplotlib
-pandas
-wandb
+# Python 3.11 environment used for the experiments.
+# On CUDA machines, install a CUDA-enabled PyTorch build if the default wheel
+# does not match your system. The reported runs used torch 2.5.1+cu121.
+torch==2.5.1
+numpy==2.4.6
+opencv-python==4.13.0.92
+Pillow==12.2.0
+matplotlib==3.10.9
+pandas==3.0.3
+wandb==0.27.0
 
 # Gymnasium Atari support for ALE/Pong-v5.
-# Recent ale-py releases include the Atari ROMs used by Gymnasium ALE envs.
-gymnasium[atari]
-ale-py
+gymnasium[atari]==1.3.0
+ale-py==0.11.2
